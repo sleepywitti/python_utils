@@ -20,8 +20,6 @@ import os
 import base64
 from typing import Tuple
 
-from Helper.Logging import *
-
 __author__ = "C. Witt"
 __copyright__ = "Copyright (C) 2014-2018 C. Witt"
 
@@ -40,7 +38,6 @@ def generate_keys(private_key_path: str, public_key_path: str, comment: str= '',
         from cryptography.hazmat.primitives.asymmetric import rsa
         from cryptography.hazmat.backends import default_backend as crypto_default_backend
 
-        log.debug('use cryptography as python cryptography module')
         key = rsa.generate_private_key(
             backend=crypto_default_backend(),
             public_exponent=65537,
@@ -57,7 +54,6 @@ def generate_keys(private_key_path: str, public_key_path: str, comment: str= '',
     except ModuleNotFoundError:
         import Crypto.PublicKey.RSA  # used for generating ssh key
 
-        log.debug('use Crypto as python cryptography module')
         key = Crypto.PublicKey.RSA.generate(key_size)
         private_key = key.exportKey('PEM')
         public_key = key.publickey().exportKey('OpenSSH')
@@ -72,11 +68,9 @@ def generate_keys(private_key_path: str, public_key_path: str, comment: str= '',
                                  ('public', public_key_path, public_key), 0o0644]:
         key_dir = os.path.dirname(path)
         if not os.path.isdir(key_dir):
-            log.debug('create {0} key directory \'{1}\''.format(name, key_dir))
             os.mkdir(key_dir)
         with open(path, 'wb') as file:
             file.write(key)
-            log.debug('write {0} key to \'{1}\''.format(name, path))
 
         os.chmod(path, mod)
 
@@ -91,7 +85,7 @@ def get_key_and_iv(key_path: str, key_length: int=16) -> Tuple[str, str]:
     assert key_length in [16, 24, 32]
     with open(key_path) as ssh_file:
         # skip the first line
-        first_line = ssh_file.readline()
+        ssh_file.readline()
         # use 24 characters from key and transform them to 16 bytes
         key = base64.b64decode(ssh_file.readline()[:64])[:key_length]
         iv = base64.b64decode(ssh_file.readline()[:24])[:16]
