@@ -44,7 +44,7 @@ def get_user_data_path(appname: str) -> str:
         # C:\Users\<username>\AppData\Local\<AppName>
         path = os.getenv('LOCALAPPDATA', os.path.expanduser('~/AppData/Local/'))
     elif system == 'Darwin':  # ~/Library/Application Support/<AppName>
-        path = os.path.join(os.path.expanduser('~/Library/Application Support/'), __app__)
+        path = os.path.join(os.path.expanduser('~/Library/Application Support/'), appname)
     else:  # ~/.local/share/<AppName>
         path = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
     path = os.path.join(path, appname)
@@ -60,7 +60,7 @@ def get_user_config_path(appname: str) -> str:
         # C:\Users\<username>\AppData\Local\<AppName>
         data_path = os.getenv('LOCALAPPDATA', os.path.expanduser('~/AppData/Local/'))
     elif system == 'Darwin':  # ~/Library/Preferences/<AppName>
-        data_path = os.path.join(os.path.expanduser('~/Library/Preferences/'), __app__)
+        data_path = os.path.join(os.path.expanduser('~/Library/Preferences/'), appname)
     else:  # ~/.config/<AppName>
         data_path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser("~/.config"))
     data_path = os.path.join(data_path, appname)
