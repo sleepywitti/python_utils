@@ -9,9 +9,6 @@
 - adds ignored sections that will not be written in file
 """
 
-import logging
-log = logging.getLogger(__name__)
-
 import configparser
 
 __author__ = "C. Witt"
@@ -21,6 +18,7 @@ __copyright__ = "Copyright (C) 2014-2018 C. Witt"
 _UNSET = configparser._UNSET
 
 
+# noinspection PyMethodOverriding,PyShadowingBuiltins
 class Settings(configparser.ConfigParser):
     """extended ConfigParser with default and ignored section support"""
 
@@ -54,12 +52,11 @@ class Settings(configparser.ConfigParser):
         if option not in self.fallback[section]:
             self.fallback[section][option] = fallback
         elif self.fallback[section][option] != fallback:
-            log.debug('different fallback values detected for {0}{1} having {2} != {3}'.format(
+            raise ValueError('different fallback values detected for {0}{1} having {2} != {3}'.format(
                 section, option, self.fallback[section][option], fallback))
 
-    # noinspection PyMethodOverriding,PyShadowingBuiltins
     def getstr(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
-        """
+        """ returns option's value as string
         :type section: str
         :type option: str
         :type raw: bool
@@ -68,11 +65,10 @@ class Settings(configparser.ConfigParser):
         :rtype : str
         """
         self.remember_fallback(section, option, fallback)
-        return super().get(section, option, fallback=fallback)
+        return super().get(section, option, raw=raw, vars=vars, fallback=fallback)
 
-    # noinspection PyMethodOverriding,PyShadowingBuiltins
     def getboolean(self, section, option, raw=False, vars=None, fallback=_UNSET):
-        """
+        """ returns option's value as boolean
         :type section: str
         :type option: str
         :type raw: bool
@@ -81,11 +77,10 @@ class Settings(configparser.ConfigParser):
         :rtype : bool
         """
         self.remember_fallback(section, option, fallback)
-        return super().getboolean(section, option, fallback=fallback)
+        return super().getboolean(section, option, raw=raw, vars=vars, fallback=fallback)
 
-    # noinspection PyMethodOverriding,PyShadowingBuiltins
     def getfloat(self, section, option, raw=False, vars=None, fallback=_UNSET):
-        """
+        """ returns option's value as float
         :type section: str
         :type option: str
         :type raw: bool
@@ -94,11 +89,10 @@ class Settings(configparser.ConfigParser):
         :rtype : float
         """
         self.remember_fallback(section, option, fallback)
-        return super().getfloat(section, option, fallback=fallback)
+        return super().getfloat(section, option, raw=raw, vars=vars, fallback=fallback)
 
-    # noinspection PyMethodOverriding,PyShadowingBuiltins
     def getint(self, section, option, raw=False, vars=None, fallback=_UNSET):
-        """
+        """ returns option's value as int
         :type section: str
         :type option: str
         :type raw: bool
@@ -107,7 +101,7 @@ class Settings(configparser.ConfigParser):
         :rtype : int
         """
         self.remember_fallback(section, option, fallback)
-        return super().getint(section, option, fallback=fallback)
+        return super().getint(section, option, raw=raw, vars=vars, fallback=fallback)
 
     def set(self, section, option, value=None):
         """ Set an option
