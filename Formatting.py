@@ -13,6 +13,7 @@ import logging
 import textwrap
 import sys
 import shutil
+from typing import List
 
 __author__ = "C. Witt"
 __copyright__ = "Copyright (C) 2014-2018 C. Witt"
@@ -20,11 +21,14 @@ __copyright__ = "Copyright (C) 2014-2018 C. Witt"
 terminal_size = shutil.get_terminal_size(fallback=(80, 20))
 
 
-def pretty_table(rows, indent=0, leftAlign=False):
+def pretty_table(rows: List[List[str]], indent: int=0, left_align: bool=False) -> str:
+    """ indents message_b by using the length of message_a """
+    def just(s, w, l):
+        return str(s).ljust(w) if l else str(s).rjust(w)
+
     columns = [[rows[rowIdx][colIdx] for rowIdx in range(len(rows))] for colIdx in range(len(rows[0]))]
     max_widths = [max([len(str(item)) for item in column]) for column in columns]
-    just = lambda s, w: str(s).ljust(w) if leftAlign else lambda s, w: str(s).rjust(w)
-    output = [' | '.join([just(cell, max_widths[col]) for col, cell in enumerate(row)]) for row in rows]
+    output = [' | '.join([just(cell, max_widths[col], left_align) for col, cell in enumerate(row)]) for row in rows]
     output.insert(1, '-|-'.join(['-' * width for width in max_widths]))
     if indent:
         for i in range(len(output)):
@@ -32,12 +36,16 @@ def pretty_table(rows, indent=0, leftAlign=False):
     return '\n'.join(output)
 
 
-def indent_format(message_a, message_b):
-    if (len(message_a) + 20) > terminal_size.columns:
+def indent_format(message_a: str, message_b: str, wrap: int=terminal_size.columns) -> str:
+    """ indents message_b by using the length of message_a """
+    if (len(message_a) + 20) > wrap:
         return message_a + message_b
     else:
-        return textwrap.fill(message_b, width=terminal_size.columns, initial_indent=message_a,
-                             subsequent_indent=' ' * len(message_a))
+        split_message = message_b.splitlines()
+        wrapped_lines = '\n'.join([textwrap.fill(line, replace_whitespace=False, width=wrap - len(message_a))
+                                   for line in split_message]).splitlines()
+        indent = '\n' + ' ' * len(message_a)
+        return message_a + indent.join(wrapped_lines)
 
 
 class IndentFormatter(logging.Formatter):
@@ -48,23 +56,23 @@ class IndentFormatter(logging.Formatter):
                sc + 'a': '\033[0;34m', sc + 'm': '\033[0;35m', sc + 'c': '\033[0;36m', sc + 'w': '\033[0;30m'}
     colors = {'WARNING': 'g', 'INFO': 'a', 'DEBUG': 'k', 'DEVEL': 'k', 'CRITICAL': 'r', 'ERROR': 'm'}
 
-    def __init__(self, fmt, datefmt=None, style='%', wrap=None, useColor=False):
+    def __init__(self, fmt: str, datefmt: str=None, style: str='%', wrap: int=None, use_color: bool=False):
         """ initiates text
         @param fmt: log format
         @param datefmt: log date format
         @param style: log style
         @param wrap: text width for wrapping
-        @param useColor: use colored output
+        @param use_color: use colored output
         """
         fmt = fmt.replace('%(indent)', self.sc + 'n')  # replaces indent indicator to #n
         logging.Formatter.__init__(self, fmt, datefmt, style)
-        self.wrap = wrap if wrap is not None else terminal_size.columns  # set wrapping length
-        self.useColor = useColor if sys.platform == 'linux' else False
+        self.wrap = wrap if wrap else terminal_size.columns  # set wrapping length
+        self.use_color = use_color if sys.platform == 'linux' else False
 
     @staticmethod
-    def color(string, useColor):
+    def color(string, use_color: bool):
         # replaces color indicators
-        if useColor:
+        if use_color:
             for key, value in IndentFormatter.formats.items():
                 string = string.replace(key, value)
         else:
@@ -72,32 +80,28 @@ class IndentFormatter(logging.Formatter):
                 string = string.replace(key, '')
         return string
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord):
         """ formats string
         @param record: string to format
         """
         message = logging.Formatter.format(self, record)
 
         # process indention
-        separatedMsg = message.split(self.sc + 'n', 2)  # split by
-        if len(separatedMsg) == 2:
-            indentLength = len(self.color(separatedMsg[0][:], False))  # calculate length to %(indent)
+        separated_msg = message.split(self.sc + 'n', 2)  # split by
+        if len(separated_msg) == 2:
+            indent_length = len(self.color(separated_msg[0][:], False))  # calculate length to %(indent)
             if self.wrap:
-                string = textwrap.fill(separatedMsg[1],  # process first line
-                                       replace_whitespace=False,  # leave whitespaces
-                                       width=self.wrap,  # calculate width for wrapping
-                                       initial_indent=separatedMsg[0],  # append first line pretext
-                                       subsequent_indent=' ' * indentLength)
+                string = indent_format(separated_msg[0], separated_msg[1], self.wrap)
             else:  # no wrap
-                string = separatedMsg[0] + ('\n' + ' ' * indentLength).join(separatedMsg[1].split('\n'))
+                string = separated_msg[0] + ('\n' + ' ' * indent_length).join(separated_msg[1].split('\n'))
 
         else:  # no indention
             string = message
 
         # process coloring
-        if self.useColor and record.levelname in self.colors:
+        if self.use_color and record.levelname in self.colors:
             string = '{s}{color}{msg}{s}{s}'.format(color=self.colors[record.levelname], msg=string, s=self.sc)
 
-        string = self.color(string, self.useColor)
+        string = self.color(string, self.use_color)
 
         return string
